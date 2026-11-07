@@ -177,6 +177,12 @@ cd crop_llm_full/frontend
 # Install Node dependencies
 npm install
 
+# Optional: point the dashboard at a running FastAPI server
+copy .env.example .env
+
+# Start the dashboard during development
+npm run dev
+
 # Build production bundle
 npm run build
 ```
