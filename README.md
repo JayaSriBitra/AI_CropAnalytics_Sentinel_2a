@@ -1,414 +1,199 @@
-# 🌾 Crop Analytics Dashboard — U-Net Segmentation + Full-Stack Web App
+# AI Crop Analytics Using Sentinel-2A Satellite Data (`AI_CropAnalytics_Sentinel_2a`)
 
-A GPU-optimised deep learning project for **semantic segmentation** of Sentinel-2 satellite imagery, wrapped in a professional **React + FastAPI** dashboard with real-time analytics, NDVI analysis, yield estimation, AI-powered insights, and a rule-based help chatbot.
+**Project Title:** Implementation of LLMs in Agriculture: Crop Analytics Using Sentinel-2A Satellite Data  
+**Repository:** `JayaSriBitra/AI_CropAnalytics_Sentinel_2a`  
+**Project Period:** November 2026 – April 2027  
 
----
-
-## 📋 Table of Contents
-
-* [Overview](#-overview)
-* [Features](#-features)
-* [Tech Stack](#-tech-stack)
-* [Project Structure](#-project-structure)
-* [Installation](#-installation)
-* [Usage](#-usage)
-* [API Endpoints](#-api-endpoints)
-* [Frontend Pages](#-frontend-pages)
-* [Model Architecture](#-model-architecture)
-* [GPU Optimisations](#-gpu-optimisations)
-* [Database](#-database)
-* [Configuration](#-configuration)
-* [Results](#-results)
-* [License](#-license)
+> **Repository Status:** Active planning, documentation, validation-starter, and frontend-scaffold phase. Do not treat proposed architecture, database schemas, or Qwen/RAG workflows as already implemented backend services.
 
 ---
 
-## 🎯 Overview
+## Table of Contents
 
-This project implements an **end-to-end crop analysis pipeline**:
-
-1. **Upload** a Sentinel-2 satellite GeoTIFF image.
-2. A **U-Net model** segments each pixel into one of 8 land-cover classes.
-3. The **dashboard** displays: crop map, class statistics, NDVI value, yield estimation, and AI-generated insights.
-4. A floating **AI Chatbot** provides interface guidance.
-
----
-
-## ✨ Features
-
-| Category | Feature |
-|----------|---------|
-| **Deep Learning** | U-Net from scratch · 8-class segmentation · 17.2 M params |
-| **Training** | Mixed-precision (AMP) · cuDNN benchmark · Dice + CE loss |
-| **Backend** | FastAPI · CORS · Auto-generated Swagger docs · Static file serving |
-| **Frontend** | React 18 · Tailwind CSS · recharts · Dark mode (class-based) |
-| **Analytics** | NDVI analysis · Yield estimation (tons/ha) · Crop statistics charts |
-| **AI** | LLM Insights page (Mistral-7B ready) · Rule-based help chatbot |
-| **Database** | PostgreSQL 16 + PostGIS 3.4 (models ready, connection deferred) |
-| **DevOps** | Production build served from FastAPI · Single-port deployment |
+- [Overview](#overview)
+- [Team Role Allocation](#team-role-allocation)
+- [Implemented vs. Planned Status](#implemented-vs-planned-status)
+- [Repository Structure](#repository-structure)
+- [Frontend Setup (`frontend/`)](#frontend-setup-frontend)
+- [Validation Utilities (`validation/`)](#validation-utilities-validation)
+- [Testing (`tests/`)](#testing-tests)
+- [Documentation Index (`docs/`)](#documentation-index-docs)
+- [Known Documentation & Setup Gaps](#known-documentation--setup-gaps)
+- [License](#license)
 
 ---
 
-## 🛠 Tech Stack
+## Overview
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 18.2, Tailwind CSS, recharts 2.10.4, Lucide React, Axios |
-| **Backend** | Python 3.12, FastAPI, Uvicorn, PyTorch, NumPy, Pillow |
-| **Database** | PostgreSQL 16, PostGIS 3.4, SQLAlchemy, GeoAlchemy2 |
-| **GPU** | CUDA, cuDNN, torch.cuda.amp (mixed precision) |
-| **Model** | U-Net (encoder-decoder with skip connections) |
+This project aims to build an end-to-end agricultural analytics platform combining:
+
+1. **Sentinel-2A Data Preparation & Spectral Indices** (`preprocessing/`, `src/preprocessing/`, `src/indices/`): Band selection, quality filtering, NDVI/NDWI/EVI calculation, and area analysis.
+2. **Semantic Segmentation** (`src/segmentation/`, `models/`): U-Net crop/land-cover segmentation with baseline comparisons (Random Forest, SVM, Naïve Bayes as planned in validation).
+3. **Ground-Truth & Validation** (`validation/`): Spatial alignment checks, group-leakage-free dataset splitting, and segmentation metrics (Accuracy, Precision, Recall, F1, IoU, Dice).
+4. **LLM + RAG Analytical Layer** (`llm_rag/`): Qwen-based evidence-grounded interpretation of structured analysis JSON, retrieved agronomy/index references, and citation checks.
+5. **Backend & Spatial Database** (`backend/`): FastAPI services with PostgreSQL + PostGIS metadata persistence.
+6. **Web Dashboard** (`frontend/`): React + Vite dashboard (`FieldSight`) for imagery upload, NDVI trends, crop health breakdown, and report export.
 
 ---
 
-## 📁 Project Structure
+## Team Role Allocation
 
-```
-crop_llm_full/
-│
-├── backend/                    # 🔧 Backend (FastAPI + ML)
-│   ├── app.py                  #   Main FastAPI server — all API endpoints
-│   ├── model.py                #   U-Net architecture definition
-│   ├── dataset.py              #   PyTorch Dataset class for Sentinel-2
-│   ├── utils.py                #   Utility functions (metrics, visualisation)
-│   ├── train.py                #   Model training script
-│   ├── test.py                 #   Model testing / evaluation
-│   ├── evaluate.py             #   Detailed evaluation & metrics
-│   ├── predict.py              #   Standalone prediction script
-│   ├── check_bands.py          #   Raster band inspection
-│   ├── check_bands_detailed.py #   Detailed band inspection
-│   └── requirements.txt        #   Python dependencies
-│
-├── frontend/                   # 🖥 Frontend (React + Tailwind)
-│   ├── public/
-│   ├── src/
-│   │   ├── App.jsx             #   Main app — routing, state, dark mode
-│   │   ├── index.js            #   React entry point
-│   │   ├── styles/
-│   │   │   └── index.css       #   Global CSS + dark mode overrides
-│   │   ├── components/
-│   │   │   ├── Header.jsx          # Top navigation bar
-│   │   │   ├── Sidebar.jsx         # Left navigation sidebar
-│   │   │   ├── UploadCard.jsx      # Image upload + demo loader
-│   │   │   ├── CropMapPanel.jsx    # Segmented crop map display
-│   │   │   ├── StatisticsPanel.jsx # Crop statistics & charts
-│   │   │   ├── NDVIAnalysis.jsx    # NDVI value, scale, classification
-│   │   │   ├── YieldEstimation.jsx # Yield metric cards
-│   │   │   ├── LLMInsights.jsx     # AI-generated crop insights
-│   │   │   ├── ChatBot.jsx         # Floating help chatbot
-│   │   │   ├── ReportsPanel.jsx    # Reports page
-│   │   │   ├── CropInsights.jsx    # Crop insights component
-│   │   │   ├── SegmentationView.jsx# Segmentation visualisation
-│   │   │   ├── NotificationDropdown.jsx
-│   │   │   ├── ProfileDropdown.jsx
-│   │   │   └── SettingsModal.jsx   # Settings (dark mode toggle)
-│   │   └── utils/
-│   │       └── downloadHelpers.js  # Download/export utilities
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── database/                   # 🗄 Database (PostgreSQL + PostGIS)
-│   ├── database.py             #   SQLAlchemy engine, session factory, init_db()
-│   └── models.py               #   ORM models (CropPrediction table)
-│
-├── analytics/                  # 📊 Analytics scripts
-│   ├── ndvi.py                 #   NDVI computation
-│   └── crop_health_report.py   #   Crop health report generation
-│
-├── outputs/                    # 📦 Model weights & runtime outputs
-│   ├── best_model.pth          #   Best trained model checkpoint
-│   ├── uploads/                #   Uploaded images
-│   └── predictions/            #   Predicted masks
-│
-├── logs/                       # 📝 Log files
-│   ├── training.log
-│   ├── training_live.log
-│   └── server.log
-│
-├── SEN-2 LULC/                 # 🛰 Sentinel-2 dataset
-│   ├── train_images/
-│   ├── train_masks/
-│   ├── val_images/
-│   ├── val_masks/
-│   ├── test_images/
-│   └── test_masks/
-│
-├── evaluation_report/          # Evaluation outputs
-├── test_results/               # Test prediction outputs
-├── .env                        # Environment variables (not tracked by git)
+| Team Member | Assigned Role | Main Responsibility |
+|---|---|---|
+| **JayaSri** | ML Lead | Own the U-Net workflow: architecture, training, inference, evaluation, and model improvements |
+| **Bhavani** | Backend & Integration Lead | Lead FastAPI, PostgreSQL/PostGIS, backend architecture, API development, and module integration |
+| **Meghana** | Remote Sensing Developer | Handle Sentinel-2A data preparation, band selection, preprocessing, NDVI/NDWI/EVI calculations, and area analysis |
+| **Dheeraj** | Qwen / RAG Developer | Build Qwen-based explanations, agricultural knowledge collection, embeddings, retrieval, prompts, and grounding evaluation |
+| **Ajay Surya** | Ground Truth & Validation Developer | Prepare reference data and validation methodology; implement metrics, independent validation, error analysis, and reporting |
+| **Rajasekar** | Frontend Developer | Build React dashboard components and pages, improve UI, display maps/charts, and connect frontend views to APIs |
+| **Venkatesh** | Testing & Documentation Coordinator | Maintain README and documentation, track genuine contributions, prepare test cases, record test evidence, and coordinate final reports |
+
+---
+
+## Implemented vs. Planned Status
+
+| Area | Current State in Checkout | Key Files |
+|---|---|---|
+| **System & Database Design** | Proposed architecture & logical ERD documented | [`docs/system_architecture.md`](docs/system_architecture.md), [`docs/database_design.md`](docs/database_design.md) |
+| **Qwen + RAG Design** | Proposed pipeline, JSON contract & grounding rules documented; no code yet | [`docs/qwen_integration_plan.md`](docs/qwen_integration_plan.md), [`llm_rag/README.md`](llm_rag/README.md) |
+| **Validation Methodology & Utilities** | Starter Python scripts & methodology implemented (`metrics.py`, `create_split.py`, `check_masks.py`) | [`docs/validation_plan.md`](docs/validation_plan.md), [`validation/README.md`](validation/README.md) |
+| **Frontend Dashboard (`FieldSight`)** | Vite + React scaffold with demo-data fallback & API client | [`frontend/src/App.jsx`](frontend/src/App.jsx), [`frontend/src/services/api.js`](frontend/src/services/api.js) |
+| **Dataset & Preprocessing** | Dataset inventory & workflow documented; `data/` contains only `.gitkeep` | [`dataset/README.md`](dataset/README.md), [`preprocessing/README.md`](preprocessing/README.md), [`docs/dataset_inventory_template.md`](docs/dataset_inventory_template.md) |
+| **Testing & Documentation Coordination** | Contribution tracker, test plan, unit tests (`tests/`), test evidence log & report plan | [`docs/contribution_tracker.md`](docs/contribution_tracker.md), [`docs/testing_plan.md`](docs/testing_plan.md), [`docs/test_evidence.md`](docs/test_evidence.md), [`docs/report_coordination.md`](docs/report_coordination.md) |
+| **Backend API (`backend/`)** | Skeleton `.gitkeep` only; not yet implemented | [`backend/.gitkeep`](backend/.gitkeep) |
+| **ML / Indices (`src/`, `models/`)** | Skeleton `.gitkeep` directories only; not yet implemented | [`src/segmentation/.gitkeep`](src/segmentation/.gitkeep), [`models/.gitkeep`](models/.gitkeep) |
+
+---
+
+## Repository Structure
+
+```text
+AI_CropAnalytics_Sentinel_2a/
+├── backend/                     # Planned FastAPI backend (currently .gitkeep)
+├── data/                        # Dataset root (currently .gitkeep; no imagery committed)
+├── dataset/
+│   └── README.md                # Verified dataset inventory
+├── docs/
+│   ├── contribution_tracker.md  # Verified team PR & contribution log
+│   ├── database_design.md       # Proposed PostgreSQL + PostGIS schema
+│   ├── dataset_inventory_template.md
+│   ├── qwen_integration_plan.md # Proposed Qwen + RAG analytical design
+│   ├── report_coordination.md   # Final report structure & sign-off checklist
+│   ├── system_architecture.md   # Proposed production architecture
+│   ├── test_evidence.md         # Recorded verification & test execution log
+│   ├── testing_plan.md          # Test cases & release gates
+│   └── validation_plan.md       # Ground-truth & evaluation methodology
+├── frontend/                    # React + Vite dashboard ("FieldSight")
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── styles.css
+│       └── services/api.js
+├── llm_rag/
+│   └── README.md                # Qwen + RAG module overview (planning stage)
+├── models/                      # Planned model artifacts (currently .gitkeep)
+├── notebooks/                   # Experiment notebooks (currently .gitkeep)
+├── preprocessing/
+│   └── README.md                # Sentinel-2A preprocessing plan & status
+├── src/
+│   ├── evaluation/              # Planned evaluation scripts (.gitkeep)
+│   ├── indices/                 # Planned NDVI/NDWI/EVI scripts (.gitkeep)
+│   ├── preprocessing/           # Planned preprocessing modules (.gitkeep)
+│   └── segmentation/            # Planned U-Net modules (.gitkeep)
+├── tests/
+│   └── test_validation.py       # Unit & CLI tests for validation utilities
+├── validation/
+│   ├── README.md
+│   ├── check_masks.py           # Raster alignment & label value checker
+│   ├── create_split.py          # Geographic-grouped train/val/test splitter
+│   ├── metrics.py               # Pixel accuracy, P/R/F1, IoU, Dice metrics
+│   └── sample_manifest.csv      # Sample manifest header template
+├── Base_Paper.pdf
+├── CSM_A01_MajorProject_ABSTRACT.pdf
+├── Reference_Paper_01.pdf .. 05.pdf
 ├── .gitignore
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🔧 Installation
+## Frontend Setup (`frontend/`)
 
-### Prerequisites
-
-* Python 3.8+
-* Node.js 18+ & npm
-* CUDA-capable GPU (recommended)
-* PostgreSQL 16 + PostGIS 3.4 (optional — DB not yet connected)
-
-### Backend Setup
+The dashboard is built with **React** and **Vite** (configured on port `5173` in [`frontend/vite.config.js`](frontend/vite.config.js)). When the FastAPI backend at `VITE_API_URL` (default `http://localhost:8000`) is offline, [`frontend/src/services/api.js`](frontend/src/services/api.js) falls back to local demo data.
 
 ```bash
-cd crop_llm_full
-
-# Create virtual environment (optional)
-python -m venv venv && source venv/bin/activate
-
-# Install PyTorch with CUDA
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-
-# Install dependencies
-pip install -r backend/requirements.txt
-
-# Verify GPU
-python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
-```
-
-### Frontend Setup
-
-```bash
-cd crop_llm_full/frontend
-
-# Install Node dependencies
+cd frontend
 npm install
 
-# Optional: point the dashboard at a running FastAPI server
-copy .env.example .env
+# Optional: configure backend URL
+copy .env.example .env   # Windows
+# cp .env.example .env   # Linux/macOS
 
-# Start the dashboard during development
+# Start Vite dev server (http://localhost:5173)
 npm run dev
 
 # Build production bundle
 npm run build
 ```
 
-### Database Setup (optional)
+---
+
+## Validation Utilities (`validation/`)
+
+1. **Mask & Grid Inspection** (requires `rasterio` and `numpy`):
+   ```bash
+   python validation/check_masks.py --image path/to/image.tif --mask path/to/mask.tif
+   ```
+2. **Geographic-Grouped Split**:
+   ```bash
+   python validation/create_split.py --input validation/sample_manifest.csv --output validation/split_manifest.csv --seed 42
+   ```
+3. **Segmentation Metrics**:
+   ```bash
+   python validation/metrics.py
+   ```
+
+---
+
+## Testing (`tests/`)
+
+Run the automated Python `unittest` suite from the repository root (requires Python 3.11+ and `numpy`):
 
 ```bash
-# Create PostgreSQL database & user
-sudo -u postgres psql -c "CREATE USER your_username WITH PASSWORD 'your_password';"
-sudo -u postgres psql -c "CREATE DATABASE your_database_name OWNER your_username;"
-sudo -u postgres psql -d your_database_name -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+python -m unittest discover -s tests -v
 ```
 
-Create a `.env` file in the project root (see `.env.example` for the required variables). **Never commit real credentials to git.**
+See [`docs/testing_plan.md`](docs/testing_plan.md) for test case definitions and [`docs/test_evidence.md`](docs/test_evidence.md) for recorded execution logs.
 
 ---
 
-## 🚀 Usage
+## Documentation Index (`docs/`)
 
-### Start the Dashboard (Backend + Frontend)
-
-```bash
-cd ~/crop_llm_full && python backend/app.py
-```
-
-Open **http://localhost:5000/dashboard** in your browser.
-
-### Frontend Dev Server (hot-reload, development only)
-
-```bash
-cd ~/crop_llm_full/frontend && npm start
-```
-
-Access at **http://localhost:3000** (API calls proxy to port 5000).
-
-### Rebuild Frontend (after React changes)
-
-```bash
-cd ~/crop_llm_full/frontend && npm run build
-```
-
-### Train the Model
-
-```bash
-python backend/train.py \
-    --data_root "SEN-2 LULC" \
-    --batch_size 16 \
-    --epochs 100 \
-    --learning_rate 0.0001 \
-    --model_type unet \
-    --loss_type combined \
-    --use_amp
-```
-
-### Test the Model
-
-```bash
-python backend/test.py \
-    --data_root "SEN-2 LULC" \
-    --model_path outputs/best_model.pth \
-    --batch_size 8 \
-    --visualize
-```
+- [`docs/system_architecture.md`](docs/system_architecture.md) — Target full-stack architecture & release gates
+- [`docs/database_design.md`](docs/database_design.md) — Logical PostgreSQL + PostGIS schema
+- [`docs/qwen_integration_plan.md`](docs/qwen_integration_plan.md) — Qwen + RAG grounding and JSON contract
+- [`docs/validation_plan.md`](docs/validation_plan.md) — Ground-truth review, split rules, and metrics
+- [`docs/dataset_inventory_template.md`](docs/dataset_inventory_template.md) — Dataset metadata capture template
+- [`docs/contribution_tracker.md`](docs/contribution_tracker.md) — Genuine PR & commit tracking across all members
+- [`docs/testing_plan.md`](docs/testing_plan.md) — Unit, integration, frontend, and RAG test cases
+- [`docs/test_evidence.md`](docs/test_evidence.md) — Recorded test evidence and verification gaps
+- [`docs/report_coordination.md`](docs/report_coordination.md) — Final report structure and submission checklist
 
 ---
 
-## 🌐 API Endpoints
+## Known Documentation & Setup Gaps
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check — model status & device |
-| `GET` | `/classes` | Land-cover class names & colours |
-| `POST` | `/predict` | Upload image → segmentation mask + insights |
-| `GET` | `/predict/demo` | Demo prediction with sample data |
-| `GET` | `/predictions` | List all stored predictions |
-| `POST` | `/llm-insight/{id}` | Generate AI insight for a prediction |
-| `GET` | `/docs` | Swagger UI (auto-generated) |
-| `GET` | `/redoc` | ReDoc API documentation |
-| `GET` | `/{path}` | Serve React frontend (catch-all) |
+- `dataset/README.md`, `preprocessing/README.md`, and `docs/dataset_inventory_template.md` reference `preprocessing/inspect_dataset.py`, which has not yet been committed to `preprocessing/`.
+- Root `requirements.txt` is currently empty (`0` bytes) and should be populated as backend, ML, and geospatial dependencies are finalized.
+- `backend/`, `models/`, `notebooks/`, and `src/` currently contain only `.gitkeep` placeholders.
 
 ---
 
-## 🖥 Frontend Pages
+## License
 
-| Page | Sidebar Icon | Description |
-|------|-------------|-------------|
-| **Dashboard** | Home | Overview with key metrics |
-| **Upload Image** | Upload | Upload GeoTIFF or load demo data |
-| **Crop Map** | Map | Segmented crop map with class legend |
-| **NDVI Analysis** | LineChart | NDVI value, colour scale, classification |
-| **Crop Statistics** | BarChart | Class distribution pie/bar charts |
-| **Yield Estimation** | Wheat | 4 metric cards (yield, area, per-ha, confidence) |
-| **LLM Insights** | Sparkles | AI-generated crop analysis & recommendations |
-| **Reports** | FileText | Exportable reports |
-| **Help & Support** | HelpCircle | Documentation & support |
-| **Chatbot** | Floating | Rule-based AI Interface Assistant (bottom-right) |
-
-### Dark Mode
-
-Toggle via **Settings** (gear icon in header). Preference saved to `localStorage`.
-
----
-
-## 🏗 Model Architecture
-
-### U-Net (17.2 M parameters)
-
-```
-Input (3, 256, 256)
-       │
-   DoubleConv (64)  ─────────────────────┐
-       │                                  │
-   Encoder1 (128)  ──────────────────┐   │
-       │                              │   │
-   Encoder2 (256)  ─────────────┐    │   │
-       │                         │    │   │
-   Encoder3 (512)  ────────┐    │    │   │
-       │                    │    │    │   │
-   Bottleneck (1024)        │    │    │   │
-       │                    │    │    │   │
-   Decoder1 (512)  ←────────┘    │    │   │
-       │                         │    │   │
-   Decoder2 (256)  ←─────────────┘    │   │
-       │                              │   │
-   Decoder3 (128)  ←──────────────────┘   │
-       │                                  │
-   Decoder4 (64)   ←──────────────────────┘
-       │
-   OutConv (8 classes)
-       │
-Output (8, 256, 256)
-```
-
-### Land-Cover Classes
-
-| ID | Class | Colour |
-|----|-------|--------|
-| 0 | Water | 🔵 Blue |
-| 1 | Trees | 🟢 Dark Green |
-| 2 | Grass | 🟩 Light Green |
-| 3 | Flooded Vegetation | 🟣 Teal |
-| 4 | Crops | 🟡 Yellow |
-| 5 | Scrub / Shrub | 🟠 Orange |
-| 6 | Built Area | 🔴 Red |
-| 7 | Bare Ground | 🟤 Brown |
-
----
-
-## ⚡ GPU Optimisations
-
-| Optimisation | Code | Benefit |
-|-------------|------|---------|
-| cuDNN Benchmark | `torch.backends.cudnn.benchmark = True` | Auto-selects fastest conv algorithm |
-| Mixed Precision | `torch.cuda.amp.autocast()` | ~2× faster with FP16 |
-| Pin Memory | `DataLoader(pin_memory=True)` | Faster CPU → GPU transfer |
-| Non-blocking | `.to(device, non_blocking=True)` | Overlaps transfer & compute |
-| Efficient Grad Zero | `zero_grad(set_to_none=True)` | Lower memory usage |
-
----
-
-## 🗄 Database
-
-**Status:** Schema defined, connection deferred.
-
-* **Engine:** PostgreSQL 16 + PostGIS 3.4
-* **ORM:** SQLAlchemy + GeoAlchemy2
-* **Table:** `crop_predictions` — stores image name, crop type, NDVI, confidence, class distribution, geometry, insight text
-* **Current behaviour:** Predictions stored in-memory (`_prediction_store` dict in `app.py`)
-
-Files: `database/database.py` (engine + session), `database/models.py` (ORM model).
-
-
-
-## ⚙ Configuration
-
-### Training Arguments
-
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `--data_root` | `SEN-2 LULC` | Dataset root directory |
-| `--batch_size` | 8 | Batch size |
-| `--epochs` | 50 | Number of epochs |
-| `--learning_rate` | 1e-4 | Initial learning rate |
-| `--model_type` | unet | `unet` or `unet_small` |
-| `--loss_type` | combined | `ce` or `combined` (Dice + CE) |
-| `--use_amp` | True | Mixed precision training |
-| `--scheduler` | plateau | `plateau`, `cosine`, or `none` |
-| `--output_dir` | outputs | Output directory |
-
-### Environment Variables (`.env`)
-
-Create a `.env` file in the project root with the following keys:
-
-| Variable | Description |
-|----------|-------------|
-| `DB_HOST` | PostgreSQL host |
-| `DB_PORT` | PostgreSQL port |
-| `DB_NAME` | Database name |
-| `DB_USER` | Database user |
-| `DB_PASSWORD` | Database password |
-
-> **Note:** The `.env` file is listed in `.gitignore` and is never pushed to the repository.
-
----
-
-## 📈 Results
-
-**Training outputs** → `outputs/`
-* `best_model.pth` — Best checkpoint (65.85 MB)
-* `training_history.png` — Loss & metric curves
-
-**Test results** → `test_results/`
-* `test_metrics.txt` — IoU & Dice scores per class
-* `visualizations/` — Input / GT / Prediction comparisons
-
-**Evaluation** → `evaluation_report/`
-* Detailed per-class metrics and confusion matrix
-
----
-
-## 📄 License
-
-This project is for educational and research purposes.
-
----
-
-**Author:** Crop Analytics Project  
-**Date:** 2026  
-**Stack:** FastAPI · React · PyTorch · PostgreSQL · Tailwind CSS
+For educational and academic research purposes (`CSM_A01_MajorProject_ABSTRACT.pdf`).
